@@ -255,7 +255,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wr
   .eyebrow { font-size: 11px; letter-spacing: .24em; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
+  .card, .card img, .tile, .tile .av, .btn, .feature img { transition-duration: .01ms !important; }
 }
 </style>
 
@@ -486,7 +486,6 @@ footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wr
     cancelAnimationFrame(raf); fc.clearRect(0, 0, FW, FH);
     intro.className = quick ? 'quick' : ''; resetLogo();
     intro.hidden = false;
-    if (reduce) { lg.style.opacity = 1; setTimeout(function () { finish(done); }, quick ? 450 : 1100); return; }
     makeParts();
     var img = document.getElementById('lgImg');
     var go = function () {
@@ -596,15 +595,23 @@ footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wr
       c.addEventListener('mouseenter', function () { timer = setTimeout(function () { pvPlay(c); }, 350); });
       c.addEventListener('mouseleave', function () { clearTimeout(timer); pvStop(c); });
     });
-  } else if ('IntersectionObserver' in window && !reduce) {
+  } else if ('IntersectionObserver' in window) {
     /* phones: play the preview of a card once most of it is on screen */
+    var inView = [];
     var pio = new IntersectionObserver(function (en) {
       en.forEach(function (e) {
-        if (!body.classList.contains('st-home')) return;
-        if (e.intersectionRatio >= .7) pvPlay(e.target); else pvStop(e.target);
+        var i = inView.indexOf(e.target);
+        if (e.intersectionRatio >= .6) { if (i < 0) inView.push(e.target); if (body.classList.contains('st-home')) pvPlay(e.target); }
+        else { if (i >= 0) inView.splice(i, 1); pvStop(e.target); }
       });
-    }, { threshold: [0, .7, 1] });
+    }, { threshold: [0, .6, 1] });
     Array.prototype.forEach.call(pvCards, function (c) { pio.observe(c); });
+    /* iPhone Low Power Mode blocks autoplay until a touch: retry on every touch */
+    document.addEventListener('touchend', function () {
+      if (!body.classList.contains('st-home')) return;
+      inView.forEach(pvPlay);
+      if (vid.paused) { var hp = vid.play(); if (hp && hp.catch) hp.catch(function () {}); }
+    }, { passive: true });
   }
 
   /* copy email */
