@@ -312,7 +312,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wr
       <div class="kick">About me</div>
       <h2>Films without a film set.</h2>
       <p class="lead">I'm an AI filmmaker from Panipat, India. I write, direct and edit cinematic films with AI: brand ads that sell and original stories people remember. A decade in textiles and a background in fashion designing taught me how products should look and feel on screen.</p>
-      <div class="facts"><span>1.5+ years in AI film</span><span>In brands and textiles since 2015</span></div>
+      <div class="facts"><span>1.5+ years in generative AI filmmaking</span><span>In brands and textiles since 2015</span></div>
       <div class="cols">
         <div><h3>What I do</h3><ul>
           <li>Cinematic ads for jewellery, fashion and FMCG brands</li>
@@ -579,17 +579,32 @@ footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wr
     if (!a) return;
     e.preventDefault(); e.stopPropagation(); openPlayer(a.getAttribute('data-v'), a.getAttribute('data-t') || 'Showreel', a.getAttribute('data-u'));
   });
+  function pvOf(c) {
+    if (c._pv) return c._pv;
+    var v = document.createElement('video');
+    v.className = 'pv'; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    v.src = 'media/' + c.getAttribute('data-pv') + '.mp4';
+    c.insertBefore(v, c.children[1]); c._pv = v; return v;
+  }
+  function pvPlay(c) { var v = pvOf(c), p = v.play(); if (p && p.then) p.then(function () { v.classList.add('on'); }, function () {}); else v.classList.add('on'); }
+  function pvStop(c) { if (c._pv) { c._pv.classList.remove('on'); c._pv.pause(); } }
+  var pvCards = document.querySelectorAll('.card[data-pv]');
   if (window.matchMedia && matchMedia('(hover: hover)').matches) {
-    Array.prototype.forEach.call(document.querySelectorAll('.card[data-pv]'), function (c) {
-      var pv = null, timer = 0;
-      c.addEventListener('mouseenter', function () {
-        timer = setTimeout(function () {
-          if (!pv) { pv = document.createElement('video'); pv.className = 'pv'; pv.muted = true; pv.loop = true; pv.playsInline = true; pv.src = 'media/' + c.getAttribute('data-pv') + '.mp4'; c.insertBefore(pv, c.children[1]); }
-          var p = pv.play(); if (p && p.then) p.then(function () { pv.classList.add('on'); }, function () {}); else pv.classList.add('on');
-        }, 350);
-      });
-      c.addEventListener('mouseleave', function () { clearTimeout(timer); if (pv) { pv.classList.remove('on'); pv.pause(); } });
+    Array.prototype.forEach.call(pvCards, function (c) {
+      var timer = 0;
+      c.addEventListener('mouseenter', function () { timer = setTimeout(function () { pvPlay(c); }, 350); });
+      c.addEventListener('mouseleave', function () { clearTimeout(timer); pvStop(c); });
     });
+  } else if ('IntersectionObserver' in window && !reduce) {
+    /* phones: play the preview of a card once most of it is on screen */
+    var pio = new IntersectionObserver(function (en) {
+      en.forEach(function (e) {
+        if (!body.classList.contains('st-home')) return;
+        if (e.intersectionRatio >= .7) pvPlay(e.target); else pvStop(e.target);
+      });
+    }, { threshold: [0, .7, 1] });
+    Array.prototype.forEach.call(pvCards, function (c) { pio.observe(c); });
   }
 
   /* copy email */
